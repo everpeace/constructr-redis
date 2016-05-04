@@ -7,7 +7,7 @@ lazy val construtrRoot = project
 lazy val constructrCoordinationRedis = project
   .copy(id = "constructr-coordination-redis")
   .in(file("constructr-coordination-redis"))
-  .enablePlugins(AutomateHeaderPlugin)
+  .enablePlugins(AutomateHeaderPlugin, BintrayPlugin)
 
 lazy val constructrAkkaTesting = project
   .copy(id = "constructr-akka-testing")

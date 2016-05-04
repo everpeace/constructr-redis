@@ -1,7 +1,7 @@
 name := "constructr-coordination-redis"
 
 libraryDependencies ++= Vector(
-  Library.constructrAkka,
+  Library.constructrCoordination,
   Library.rediscala,
   Library.akkaTestkit % "test",
   Library.scalaTest   % "test"

@@ -8,8 +8,11 @@ This library enables to use [Redis](https://redis.io/) as cluster coordinator in
 You will need to add the following dependency in your `build.sbt` in addition to the core ConstructR ones:
 
 ```
-// T.B.D
+resolvers += Resolver.bintrayRepo("everpeace", "maven")
+
+libraryDependencies += "com.github.everpeace" %% "constructr-coordination-redis" % "0.0.1",
 ```
+
 
 ## Configuration ##
 

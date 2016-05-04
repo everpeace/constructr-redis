@@ -1,4 +1,5 @@
 # ConstructR-Redis #
+[![Build Status](https://travis-ci.org/everpeace/constructr-redis.svg?branch=master)](https://travis-ci.org/everpeace/constructr-redis)
 
 This library enables to use [Redis](https://redis.io/) as cluster coordinator in a [ConstructR](https://github.com/hseeberger/constructr) based node.
 

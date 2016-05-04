@@ -5,6 +5,7 @@ import de.heikoseeberger.sbtheader.license.Apache2_0
 import sbt._
 import sbt.plugins.JvmPlugin
 import sbt.Keys._
+import sbtrelease.ReleasePlugin.autoImport._
 import scalariform.formatter.preferences.{ AlignSingleLineCaseStatements, DoubleIndentClassDeclaration }
 
 object Build extends AutoPlugin {
@@ -56,6 +57,8 @@ object Build extends AutoPlugin {
     HeaderPlugin.autoImport.headers := Map("scala" -> Apache2_0("2016", "Shingo Omura")),
 
     // Bintray settings
-    BintrayPlugin.autoImport.bintrayPackage := "constructr-redis"
+    BintrayPlugin.autoImport.bintrayPackage := "constructr-redis",
+
+    releaseVersionBump := sbtrelease.Version.Bump.Next
   )
 }

@@ -10,7 +10,7 @@ You will need to add the following dependency in your `build.sbt` in addition to
 ```
 resolvers += Resolver.bintrayRepo("everpeace", "maven")
 
-libraryDependencies += "com.github.everpeace" %% "constructr-coordination-redis" % "0.0.1",
+libraryDependencies += "com.github.everpeace" %% "constructr-coordination-redis" % "0.0.2",
 ```
 
 

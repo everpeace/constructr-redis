@@ -19,11 +19,11 @@ package redis
 
 import _root_.redis.RedisClient
 import akka.Done
-import akka.actor.{ActorRefFactory, ActorSystem, Address, AddressFromURIString}
-import com.typesafe.config.{Config, ConfigException}
+import akka.actor.{ ActorRefFactory, ActorSystem, Address, AddressFromURIString }
+import com.typesafe.config.{ Config, ConfigException }
 import de.heikoseeberger.constructr.coordination.Coordination
 
-import scala.concurrent.{ExecutionContext, Future}
+import scala.concurrent.{ ExecutionContext, Future }
 import scala.concurrent.duration.FiniteDuration
 
 final class RedisCoordination(

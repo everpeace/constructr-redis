@@ -16,27 +16,18 @@
 
 package com.github.everpeace.constructr.coordination.redis
 
-import java.nio.charset.StandardCharsets._
-
 import akka.Done
-import akka.actor.ActorSystem
+import akka.actor.{ ActorSystem, Address }
 import akka.testkit.TestProbe
 import com.typesafe.config.ConfigFactory
 import de.heikoseeberger.constructr.coordination.Coordination
 import org.scalatest.{ BeforeAndAfterAll, Matchers, WordSpec }
 
-import scala.concurrent.{ Awaitable, Await }
+import scala.concurrent.{ Await, Awaitable }
 import scala.concurrent.duration._
 import scala.util.Random
 
 object RedisCoordinationSpec {
-  import Coordination._
-
-  private implicit val stringNodeSerialization = new NodeSerialization[String] {
-    override def fromBytes(bytes: Array[Byte]) = new String(bytes, UTF_8)
-    override def toBytes(s: String) = s.getBytes(UTF_8)
-  }
-
   // this test assumes redis server is up on DOCKER_HOST or localhost(127.0.0.1)
   // below command would be help:
   //   $ docker run --name some-redis -p 6379:6379 -d redis
@@ -58,25 +49,28 @@ class RedisCoordinationSpec extends WordSpec with Matchers with BeforeAndAfterAl
 
   "RedisCoordination" should {
     "correctly interact with redis" in {
-      val coordination: Coordination = new RedisCoordination(randomString(), randomString(), system)
+      val coordination: Coordination = new RedisCoordination(randomString(), system)
 
-      resultOf(coordination.getNodes[String]()) shouldBe 'empty
+      resultOf(coordination.getNodes()) shouldBe 'empty
 
-      resultOf(coordination.lock[String]("self", 10.seconds)) shouldBe true
-      resultOf(coordination.lock[String]("self", 10.seconds)) shouldBe true
-      resultOf(coordination.lock[String]("other", 10.seconds)) shouldBe false
+      val selfAddress = Address("tcp", "self")
+      val otherAddress = Address("tcp", "other")
 
-      resultOf(coordination.addSelf[String]("self", 10.seconds)) shouldBe Done
-      resultOf(coordination.getNodes[String]()) shouldBe Set("self")
+      resultOf(coordination.lock(selfAddress, 10.seconds)) shouldBe true
+      resultOf(coordination.lock(selfAddress, 10.seconds)) shouldBe true
+      resultOf(coordination.lock(otherAddress, 10.seconds)) shouldBe false
 
-      resultOf(coordination.refresh[String]("self", 1.second)) shouldBe Done
-      resultOf(coordination.getNodes[String]()) shouldBe Set("self")
+      resultOf(coordination.addSelf(selfAddress, 10.seconds)) shouldBe Done
+      resultOf(coordination.getNodes()) shouldBe Set(selfAddress)
+
+      resultOf(coordination.refresh(selfAddress, 1.second)) shouldBe Done
+      resultOf(coordination.getNodes()) shouldBe Set(selfAddress)
 
       val probe = TestProbe()
       import probe._
       within(5.seconds) { // 2 seconds should be enough, but who knows hows ...
         awaitAssert {
-          resultOf(coordination.getNodes[String]()) shouldBe 'empty
+          resultOf(coordination.getNodes()) shouldBe 'empty
         }
       }
     }

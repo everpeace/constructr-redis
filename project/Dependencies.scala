@@ -2,17 +2,17 @@ import sbt._
 
 object Version {
     final val Scala            = "2.11.8"
-    final val Constructr       = "0.13.2"
+    final val Constructr       = "0.17.0"
     final val Rediscala        = "1.6.0"
-    final val Akka             = "2.4.4"
+    final val Akka             = "2.5.0"
     final val AkkaLog4j        = "1.1.3"
     final val Log4j            = "2.5"
-    final val ScalaTest        = "2.2.6"
+    final val ScalaTest        = "3.0.0"
 }
 
 object Library {
   val constructrCoordination = "de.heikoseeberger"        %% "constructr-coordination"  % Version.Constructr
-  val constructrAkka         = "de.heikoseeberger"        %% "constructr-akka"          % Version.Constructr
+  val constructrAkka         = "de.heikoseeberger"        %% "constructr"               % Version.Constructr
   val rediscala              = "com.github.etaty"         %% "rediscala"                % Version.Rediscala
   val akkaCluster            = "com.typesafe.akka"        %% "akka-cluster"             % Version.Akka
   val akkaTestkit            = "com.typesafe.akka"        %% "akka-testkit"             % Version.Akka

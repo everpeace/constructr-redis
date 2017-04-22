@@ -16,8 +16,7 @@
 
 package com.github.everpeace.constructor.coordination.redis
 
-import akka.actor.ActorDSL.{Act, actor}
-import akka.actor.Address
+import akka.actor.{Actor, Props}
 import akka.cluster.{Cluster, ClusterEvent}
 import akka.pattern.ask
 import akka.remote.testkit.{MultiNodeConfig, MultiNodeSpec}
@@ -26,7 +25,7 @@ import akka.testkit.TestDuration
 import akka.util.Timeout
 import com.github.everpeace.constructr.coordination.redis.RedisClientFactory
 import com.typesafe.config.ConfigFactory
-import de.heikoseeberger.constructr.akka.ConstructrExtension
+import de.heikoseeberger.constructr.ConstructrExtension
 import de.heikoseeberger.constructr.coordination.Coordination
 import org.scalatest.{BeforeAndAfterAll, FreeSpecLike, Matchers}
 
@@ -60,13 +59,13 @@ class ConstructrMultiNodeConfig(coordinationPort: Int) extends MultiNodeConfig {
   }
 }
 
-abstract class MultiNodeRedisConstructrSpecBase(coordinationPort: Int, prefix: String, clusterName: String)
+abstract class MultiNodeRedisConstructrSpecBase(coordinationPort: Int, clusterName: String)
   extends MultiNodeSpec(new ConstructrMultiNodeConfig(coordinationPort))
     with FreeSpecLike with Matchers with BeforeAndAfterAll {
 
   implicit val mat = ActorMaterializer()
   val redis = RedisClientFactory.fromConfig(system.settings.config)
-  val redisCoordination = Coordination(prefix, clusterName, system)
+  val redisCoordination = Coordination(clusterName, system)
 
   "Constructr should manage an Akka cluster" in {
     runOn(roles.head) {
@@ -84,18 +83,17 @@ abstract class MultiNodeRedisConstructrSpecBase(coordinationPort: Int, prefix: S
     enterBarrier("coordination-started")
 
     ConstructrExtension(system)
-    val listener = actor(new Act {
-
+    val listener = system.actorOf(Props(new Actor {
       import ClusterEvent._
 
       var isMember = false
       Cluster(context.system).subscribe(self, InitialStateAsEvents, classOf[MemberJoined], classOf[MemberUp])
-      become {
+      def receive: Receive = {
         case "isMember" => sender() ! isMember
         case MemberJoined(member) if member.address == Cluster(context.system).selfAddress => isMember = true
         case MemberUp(member) if member.address == Cluster(context.system).selfAddress => isMember = true
       }
-    })
+    }))
     within(20.seconds.dilated) {
       awaitAssert {
         implicit val timeout = Timeout(1.second.dilated)
@@ -108,9 +106,8 @@ abstract class MultiNodeRedisConstructrSpecBase(coordinationPort: Int, prefix: S
 
     within(5.seconds.dilated) {
       awaitAssert {
-        import de.heikoseeberger.constructr.akka._
         val constructrNodes = Await.result(
-          redisCoordination.getNodes[Address](),
+          redisCoordination.getNodes(),
           1.second.dilated
         )
         roles.to[Set].map(_.name.toInt) shouldEqual constructrNodes.flatMap(_.port)

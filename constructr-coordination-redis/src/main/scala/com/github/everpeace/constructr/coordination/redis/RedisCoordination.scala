@@ -17,48 +17,42 @@
 package com.github.everpeace.constructr.coordination
 package redis
 
-import java.util.Base64
-
 import _root_.redis.RedisClient
 import akka.Done
-import akka.actor.{ ActorRefFactory, ActorSystem }
-import com.typesafe.config.{ Config, ConfigException }
+import akka.actor.{ActorRefFactory, ActorSystem, Address, AddressFromURIString}
+import com.typesafe.config.{Config, ConfigException}
 import de.heikoseeberger.constructr.coordination.Coordination
-import de.heikoseeberger.constructr.coordination.Coordination.NodeSerialization
 
-import scala.concurrent.Future
+import scala.concurrent.{ExecutionContext, Future}
 import scala.concurrent.duration.FiniteDuration
 
 final class RedisCoordination(
-    val prefix: String,
     val clusterName: String,
     val system: ActorSystem
 ) extends Coordination {
-  implicit val _system: ActorRefFactory = system
-  implicit val _ec = _system.dispatcher
+  private[this] implicit val _system: ActorRefFactory = system
+  private[this] implicit val _ec: ExecutionContext = _system.dispatcher
 
-  val redis = RedisClientFactory.fromConfig(system.settings.config)
+  private[this] val redis = RedisClientFactory.fromConfig(system.settings.config)
 
-  def lockKey = s"${prefix}/${clusterName}/lock"
-  def nodeKeyPrefix = s"${prefix}/${clusterName}/nodes"
-  def nodeKey[A: NodeSerialization](self: A) = s"${nodeKeyPrefix}/${Base64.getUrlEncoder.encodeToString(NodeSerialization.toBytes(self))}"
+  def lockKey = s"$clusterName/lock"
+  def nodeKeyPrefix = s"$clusterName/nodes"
+  def nodeKey(self: Address) = s"$nodeKeyPrefix/${self.toString}"
 
   /**
    * Get the nodes.
-   *
-   * @tparam A node type, must have a [[Coordination.NodeSerialization]]
    * @return future of nodes
    */
-  override def getNodes[A: NodeSerialization](): Future[Set[A]] = redis.keys(s"${nodeKeyPrefix}/*").map(ks => scala.collection.immutable.Seq(ks: _*)).flatMap { ks =>
+  override def getNodes(): Future[Set[Address]] = redis.keys(s"$nodeKeyPrefix/*").map(ks => scala.collection.immutable.Seq(ks: _*)).flatMap { ks =>
     // N+1 problem would happen here.
     // But N might not be so large in real situation.
-    val f: Seq[Future[Option[A]]] = for {
+    val f: Seq[Future[Option[Address]]] = for {
       k <- ks
     } yield {
       for {
-        bytesOpt <- redis.get[Array[Byte]](k)
+        bytesOpt <- redis.get[String](k)
       } yield {
-        bytesOpt.map(NodeSerialization.fromBytes[A])
+        bytesOpt.map(AddressFromURIString(_))
       }
     }
     Future.sequence(f).map { opts =>
@@ -71,21 +65,20 @@ final class RedisCoordination(
   }
 
   /**
-   * Akquire a lock for bootstrapping the cluster (first node).
+   * Acquire a lock for bootstrapping the cluster (first node).
    *
    * @param self self node
    * @param ttl  TTL for the lock
-   * @tparam A node type, must have a [[Coordination.NodeSerialization]]
    * @return true, if lock could be akquired, else false
    */
-  override def lock[A: NodeSerialization](self: A, ttl: FiniteDuration): Future[Boolean] = {
-    def readLock(): Future[Option[A]] = redis.get[Array[Byte]](lockKey).map(_.map(NodeSerialization.fromBytes[A]))
-    def writeLock(lockHolder: A): Future[Boolean] = {
+  override def lock(self: Address, ttl: FiniteDuration): Future[Boolean] = {
+    def readLock(): Future[Option[Address]] = redis.get[String](lockKey).map(_.map(AddressFromURIString(_)))
+    def writeLock(lockHolder: Address): Future[Boolean] = {
       val trans2 = redis.watch(lockKey)
-      val writeLock = trans2.set(lockKey, NodeSerialization.toBytes(lockHolder), None, Some(ttl.toMillis))
+      val writeLock = trans2.set(lockKey, lockHolder.toString, None, Some(ttl.toMillis))
       trans2.exec()
       writeLock.recover {
-        case error => false
+        case _ => false
       }
     }
     readLock().flatMap {
@@ -99,26 +92,24 @@ final class RedisCoordination(
    *
    * @param self self node
    * @param ttl  TTL for the node entry
-   * @tparam A node type, must have a [[Coordination.NodeSerialization]]
    * @return future signaling done
    */
-  override def refresh[A: NodeSerialization](self: A, ttl: FiniteDuration): Future[Done] = addSelfOrRefresh(self, ttl)
+  override def refresh(self: Address, ttl: FiniteDuration): Future[Done] = addSelfOrRefresh(self, ttl)
 
   /**
    * Add self to the nodes.
    *
    * @param self self node
    * @param ttl  TTL for the node entry
-   * @tparam A node type, must have a [[Coordination.NodeSerialization]]
    * @return future signaling done
    */
-  override def addSelf[A: NodeSerialization](self: A, ttl: FiniteDuration): Future[Done] = addSelfOrRefresh(self, ttl)
+  override def addSelf(self: Address, ttl: FiniteDuration): Future[Done] = addSelfOrRefresh(self, ttl)
 
   // redis doesn't support element-wise ttl in [sorted] sets.
   // So, this sets with
   //   key -> {prefix}/{clusterName}/nodes/{encoded self}
   //   value -> encoded self
-  private def addSelfOrRefresh[A: NodeSerialization](self: A, ttl: FiniteDuration): Future[Done] = redis.set(nodeKey(self), NodeSerialization.toBytes(self), None, Some(ttl.toMillis)).map(_ => Done)
+  private def addSelfOrRefresh(self: Address, ttl: FiniteDuration): Future[Done] = redis.set(nodeKey(self), self.toString, None, Some(ttl.toMillis)).map(_ => Done)
 
 }
 
@@ -132,12 +123,12 @@ object RedisClientFactory {
     val password = try {
       Option(config.getString("constructr.coordination.redis.password")).filter(_.nonEmpty)
     } catch {
-      case e: ConfigException.Missing => None
+      case _: ConfigException.Missing => None
     }
     val db = try {
       Option(config.getInt("constructr.coordination.redis.db"))
     } catch {
-      case e: ConfigException.Missing => None
+      case _: ConfigException.Missing => None
     }
 
     RedisClient(host, port, password, db)

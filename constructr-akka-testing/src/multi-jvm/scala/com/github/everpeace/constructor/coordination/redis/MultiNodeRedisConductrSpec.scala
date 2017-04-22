@@ -24,6 +24,5 @@ class MultiNodeRedisConstructrSpecMultiJvmNode5 extends MultiNodeRedisConstructr
 
 abstract class MultiNodeRedisConstructrSpec extends MultiNodeRedisConstructrSpecBase(
   6379,
-  "akka",
   "MultiNodeRedisConstructrSpecBase"
 )

@@ -31,8 +31,8 @@ object Build extends AutoPlugin {
           <url>http://everpeace.github.io/</url>
         </developer>
       </developers>,
-    scalaVersion := Version.Scala,
-    crossScalaVersions := Vector(scalaVersion.value),
+    scalaVersion := Version.Scala.head,
+    crossScalaVersions := Version.Scala,
     scalacOptions ++= Vector(
       "-unchecked",
       "-deprecation",

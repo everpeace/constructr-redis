@@ -1,5 +1,5 @@
 # ConstructR-Redis #
-[![Build Status](https://travis-ci.org/everpeace/constructr-redis.svg?branch=master)](https://travis-ci.org/everpeace/constructr-redis)
+[![Build Status](https://travis-ci.org/everpeace/constructr-redis.svg?branch=master)](https://travis-ci.org/everpeace/constructr-redis)[ ![Download](https://api.bintray.com/packages/everpeace/maven/constructr-redis/images/download.svg) ](https://bintray.com/everpeace/maven/constructr-redis/_latestVersion)
 
 This library enables to use [Redis](https://redis.io/) as cluster coordinator in a [ConstructR](https://github.com/hseeberger/constructr) based node.
 

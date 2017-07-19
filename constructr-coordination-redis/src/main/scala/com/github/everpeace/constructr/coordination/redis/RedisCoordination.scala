@@ -30,7 +30,7 @@ final class RedisCoordination(
     val clusterName: String,
     val system: ActorSystem
 ) extends Coordination {
-  private[this] implicit val _system: ActorRefFactory = system
+  private[this] implicit val _system: ActorSystem = system
   private[this] implicit val _ec: ExecutionContext = _system.dispatcher
 
   private[this] val redis = RedisClientFactory.fromConfig(system.settings.config)
@@ -114,7 +114,7 @@ final class RedisCoordination(
 }
 
 object RedisClientFactory {
-  def fromConfig(config: Config)(implicit af: ActorRefFactory): RedisClient = {
+  def fromConfig(config: Config)(implicit af: ActorSystem): RedisClient = {
     val host = Option(config.getString("constructr.coordination.host")).filter(_.trim.nonEmpty).getOrElse("")
     val port = config.getInt("constructr.coordination.port")
     require(host.nonEmpty, "\"constructr.coordination.redis.host\" must be given.")
